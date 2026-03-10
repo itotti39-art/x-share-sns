@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Image as ImageIcon, Send, Save, Loader2 } from 'lucide-react';
 import { usePostStore } from '../stores/usePostStore';
 import { Platform } from '../types';
-import { generateAIPostText, generateAIImage } from '../lib/api';
+import { generateAIPostText, generateAIImage, publishPost, schedulePost } from '../lib/api';
 
 export function CreatePost() {
     const navigate = useNavigate();
-    const addPost = usePostStore((state) => state.addPost);
+    const { addPost, deletePost } = usePostStore();
 
     const [theme, setTheme] = useState('');
     const [message, setMessage] = useState('');
@@ -17,6 +17,7 @@ export function CreatePost() {
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [scheduledAt, setScheduledAt] = useState('');
+    const [isPublishing, setIsPublishing] = useState(false);
 
     const handleGenerateText = async () => {
         if (!theme || !message) {
@@ -76,7 +77,7 @@ export function CreatePost() {
         navigate('/posts');
     };
 
-    const handleSchedulePost = () => {
+    const handleSchedulePost = async () => {
         if (!content) {
             alert('投稿内容がありません');
             return;
@@ -89,7 +90,9 @@ export function CreatePost() {
             alert('投稿先プラットフォームを1つ以上選択してください');
             return;
         }
-        addPost({
+
+        // まずローカルストアに保存してIDを発行
+        const postId = addPost({
             theme,
             message,
             content,
@@ -98,8 +101,67 @@ export function CreatePost() {
             status: 'scheduled',
             scheduledAt,
         });
-        alert('投稿を予約しました');
-        navigate('/posts');
+
+        // バックエンドに予約情報を送信
+        try {
+            await schedulePost(content, platforms, scheduledAt, imageUrl || undefined, postId);
+
+            alert('投稿を予約しました\n（バックグラウンドで指定時間に自動送信されます）');
+            navigate('/posts');
+        } catch (error) {
+            console.error('Scheduling failed:', error);
+            // サーバー連携に失敗した場合は作成したローカルの予定を取り消す
+            deletePost(postId);
+            alert('予約登録に失敗しました。サーバーが起動しているか確認してください。');
+        }
+    };
+
+    const handlePublishNow = async () => {
+        if (!content) {
+            alert('投稿内容がありません');
+            return;
+        }
+        if (platforms.length === 0) {
+            alert('投稿先プラットフォームを1つ以上選択してください');
+            return;
+        }
+
+        setIsPublishing(true);
+        try {
+            const result = await publishPost(content, platforms, imageUrl || undefined);
+
+            // 投稿成功したものをストアに保存
+            addPost({
+                theme,
+                message,
+                content,
+                imageUrl,
+                platforms,
+                status: 'published',
+                scheduledAt: new Date().toISOString(),
+            });
+
+            console.log('Publish result:', result);
+
+            // 各プラットフォームの結果をメッセージ化
+            let resultMessage = '投稿処理が完了しました：\n\n';
+            if (result.results) {
+                for (const [platform, res] of Object.entries((result.results as Record<string, any>))) {
+                    if (res.success) {
+                        resultMessage += `✅ ${platform}: 成功 (ID: ${res.id})\n`;
+                    } else {
+                        resultMessage += `❌ ${platform}: 失敗\n   理由: ${res.error}\n`;
+                    }
+                }
+            }
+            alert(resultMessage);
+            navigate('/posts');
+        } catch (error) {
+            console.error('Publishing failed:', error);
+            alert('投稿に失敗しました。サーバーが起動しているか、APIキーが正しく設定されているか確認してください。');
+        } finally {
+            setIsPublishing(false);
+        }
     };
 
     return (
@@ -206,8 +268,8 @@ export function CreatePost() {
                                             key={p}
                                             onClick={() => togglePlatform(p)}
                                             className={`px-4 py-2 rounded-lg font-medium border-2 transition-colors capitalize ${platforms.includes(p)
-                                                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                                                    : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                                                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                                                : 'border-slate-200 text-slate-500 hover:border-slate-300'
                                                 }`}
                                         >
                                             {p}
@@ -226,20 +288,30 @@ export function CreatePost() {
                                 />
                             </div>
 
-                            <div className="pt-4 border-t border-slate-100 flex gap-3">
+                            <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleSaveDraft}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                    >
+                                        <Save className="w-5 h-5" />
+                                        下書き保存
+                                    </button>
+                                    <button
+                                        onClick={handleSchedulePost}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                        予約に追加
+                                    </button>
+                                </div>
                                 <button
-                                    onClick={handleSaveDraft}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                    onClick={handlePublishNow}
+                                    disabled={isPublishing}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 disabled:opacity-70"
                                 >
-                                    <Save className="w-5 h-5" />
-                                    下書き保存
-                                </button>
-                                <button
-                                    onClick={handleSchedulePost}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
-                                >
-                                    <Send className="w-5 h-5" />
-                                    予約投稿する
+                                    {isPublishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                    今すぐ実SNSへ投稿する
                                 </button>
                             </div>
                         </div>

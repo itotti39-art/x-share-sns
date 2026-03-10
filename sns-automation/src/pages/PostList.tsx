@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { usePostStore } from '../stores/usePostStore';
 import { formatDate } from '../lib/date';
 import { RefreshCw, Trash2, Edit2, Play, Circle, CheckCircle2 } from 'lucide-react';
@@ -6,6 +7,34 @@ import { PostStatus } from '../types';
 
 export function PostList() {
     const { posts, updateStatus, deletePost } = usePostStore();
+
+    // 予約投稿のステータスをサーバーと同期する
+    useEffect(() => {
+        const checkStatus = async () => {
+            // 予約中の投稿があるか確認
+            const hasScheduled = posts.some(p => p.status === 'scheduled');
+            if (!hasScheduled) return;
+
+            try {
+                const res = await fetch('/api/posts/status');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                posts.forEach(post => {
+                    if (post.status === 'scheduled' && data.completed.includes(post.id)) {
+                        updateStatus(post.id, 'published');
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to fetch post status:', err);
+            }
+        };
+
+        checkStatus();
+        const interval = setInterval(checkStatus, 15000); // 15秒ごとに確認
+
+        return () => clearInterval(interval);
+    }, [posts, updateStatus]);
 
     const handleStatusChange = (id: string, currentStatus: PostStatus) => {
         // 状態をモックで切り替える機能（下書き -> 予約 -> 公開）

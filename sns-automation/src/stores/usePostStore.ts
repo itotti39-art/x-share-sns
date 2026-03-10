@@ -4,7 +4,7 @@ import { Post, PostStatus } from '../types';
 
 interface PostState {
     posts: Post[];
-    addPost: (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) => void;
+    addPost: (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) => string;
     updatePost: (id: string, post: Partial<Post>) => void;
     deletePost: (id: string) => void;
     updateStatus: (id: string, status: PostStatus) => void;
@@ -14,16 +14,19 @@ export const usePostStore = create<PostState>()(
     persist(
         (set) => ({
             posts: [],
-            addPost: (post) =>
+            addPost: (post) => {
+                const id = crypto.randomUUID();
                 set((state) => {
                     const newPost: Post = {
                         ...post,
-                        id: crypto.randomUUID(),
+                        id,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                     };
                     return { posts: [newPost, ...state.posts] };
-                }),
+                });
+                return id;
+            },
             updatePost: (id, updatedFields) =>
                 set((state) => ({
                     posts: state.posts.map((post) =>
