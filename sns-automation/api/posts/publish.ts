@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { publishToPlatforms } from '../../_lib/publisher';
+import { publishToPlatforms } from '../_lib/publisher';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
