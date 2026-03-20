@@ -1,0 +1,2 @@
+src/lib/api.ts(70,13): error TS6133: 'data' is declared but its value is never read.
+src/pages/CreatePost.tsx(6,30): error TS2724: '"../lib/api"' has no exported member named 'generateAIImage'. Did you mean 'generateAIPostImage'?

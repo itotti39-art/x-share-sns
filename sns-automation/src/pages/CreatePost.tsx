@@ -3,30 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Image as ImageIcon, Send, Save, Loader2 } from 'lucide-react';
 import { usePostStore } from '../stores/usePostStore';
 import { Platform } from '../types';
-import { generateAIPostText, generateAIImage, publishPost, schedulePost } from '../lib/api';
+import { generateAIPostText, generateAIPostImage, publishPost, schedulePost, uploadImage } from '../lib/api';
 
 export function CreatePost() {
     const navigate = useNavigate();
     const { addPost, deletePost } = usePostStore();
 
-    const [theme, setTheme] = useState('');
-    const [message, setMessage] = useState('');
+    const [prompt, setPrompt] = useState('');
     const [content, setContent] = useState('');
     const [imageUrl, setImageUrl] = useState('');
-    const [platforms, setPlatforms] = useState<Platform[]>(['x']);
+    const [localPath, setLocalPath] = useState('');
+    const [platforms, setPlatforms] = useState<Platform[]>(['x', 'facebook', 'threads']);
     const [isGeneratingText, setIsGeneratingText] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [scheduledAt, setScheduledAt] = useState('');
     const [isPublishing, setIsPublishing] = useState(false);
 
     const handleGenerateText = async () => {
-        if (!theme || !message) {
-            alert('テーマと伝えたいことを入力してください');
+        if (!prompt) {
+            alert('テーマ・伝えたいことを入力してください');
             return;
         }
         setIsGeneratingText(true);
         try {
-            const generated = await generateAIPostText(theme, message);
+            const generated = await generateAIPostText(prompt);
             setContent(generated);
         } catch (error) {
             console.error(error);
@@ -37,19 +38,44 @@ export function CreatePost() {
     };
 
     const handleGenerateImage = async () => {
-        if (!theme) {
-            alert('画像生成のプロンプトとしてテーマを入力してください');
+        if (!prompt) {
+            alert('画像生成のプロンプトとしてテーマ・伝えたいことを入力してください');
             return;
         }
         setIsGeneratingImage(true);
         try {
-            const url = await generateAIImage(theme);
-            setImageUrl(url);
+            const data = await generateAIPostImage(prompt);
+            setImageUrl(data.imageUrl);
+            setLocalPath(data.localPath); // Geminiによって生成された画像もローカル保存されるためパスをセット
         } catch (error) {
             console.error(error);
             alert('画像生成に失敗しました');
         } finally {
             setIsGeneratingImage(false);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // 簡易バリデーション (画像のみ)
+        if (!file.type.startsWith('image/')) {
+            alert('画像ファイルを選択してください');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const data = await uploadImage(file);
+            setImageUrl(data.imageUrl); // プレビュー用URL
+            setLocalPath(data.localPath); // 本番送信用のローカルパス
+        } catch (error) {
+            console.error(error);
+            alert('画像のアップロードに失敗しました');
+        } finally {
+            setIsUploading(false);
+            e.target.value = ''; // フォームリセット
         }
     };
 
@@ -65,10 +91,10 @@ export function CreatePost() {
             return;
         }
         addPost({
-            theme,
-            message,
+            prompt,
             content,
             imageUrl,
+            localPath: localPath || undefined,
             platforms,
             status: 'draft',
             scheduledAt: scheduledAt || undefined,
@@ -93,10 +119,10 @@ export function CreatePost() {
 
         // まずローカルストアに保存してIDを発行
         const postId = addPost({
-            theme,
-            message,
+            prompt,
             content,
             imageUrl,
+            localPath: localPath || undefined,
             platforms,
             status: 'scheduled',
             scheduledAt,
@@ -104,7 +130,7 @@ export function CreatePost() {
 
         // バックエンドに予約情報を送信
         try {
-            await schedulePost(content, platforms, scheduledAt, imageUrl || undefined, postId);
+            await schedulePost(content, platforms, scheduledAt, imageUrl || undefined, localPath || undefined, postId);
 
             alert('投稿を予約しました\n（バックグラウンドで指定時間に自動送信されます）');
             navigate('/posts');
@@ -128,14 +154,14 @@ export function CreatePost() {
 
         setIsPublishing(true);
         try {
-            const result = await publishPost(content, platforms, imageUrl || undefined);
+            const result = await publishPost(content, platforms, imageUrl || undefined, localPath || undefined);
 
             // 投稿成功したものをストアに保存
             addPost({
-                theme,
-                message,
+                prompt,
                 content,
                 imageUrl,
+                localPath: localPath || undefined,
                 platforms,
                 status: 'published',
                 scheduledAt: new Date().toISOString(),
@@ -181,23 +207,12 @@ export function CreatePost() {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">テーマ</label>
-                                <input
-                                    type="text"
-                                    value={theme}
-                                    onChange={(e) => setTheme(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                    placeholder="例: 新機能リリースのお知らせ"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">伝えたいこと</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">テーマ・伝えたいこと</label>
                                 <textarea
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all min-h-[120px] resize-none"
-                                    placeholder="例: ユーザーの要望が多かったダッシュボード機能を拡充しました。"
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all min-h-[160px] resize-none"
+                                    placeholder="例: 新機能リリースのお知らせ。ユーザーから要望が多かったダッシュボード機能を拡充しました。"
                                 />
                             </div>
 
@@ -239,17 +254,44 @@ export function CreatePost() {
                                 />
                             </div>
 
-                            {imageUrl && (
+                            {imageUrl ? (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">添付画像</label>
                                     <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                                        <img src={imageUrl} alt="Generated" className="w-full h-auto object-cover max-h-64" />
+                                        <img src={imageUrl} alt="Generated or Uploaded" className="w-full h-auto object-cover max-h-64" />
                                         <button
-                                            onClick={() => setImageUrl('')}
+                                            onClick={() => {
+                                                setImageUrl('');
+                                                setLocalPath('');
+                                            }}
                                             className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-md text-slate-600 hover:text-red-500 shadow-sm"
                                         >
                                             削除
                                         </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">画像をアプロード</label>
+                                    <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition-colors relative">
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg, image/png, image/webp"
+                                            onChange={handleImageUpload}
+                                            disabled={isUploading}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                        />
+                                        {isUploading ? (
+                                            <div className="flex flex-col items-center text-indigo-500">
+                                                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                                                <span className="text-sm font-medium">アップロード中...</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center text-slate-500">
+                                                <ImageIcon className="w-8 h-8 mb-2 text-slate-400" />
+                                                <span className="text-sm font-medium">PCから画像を選択してアップロード</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

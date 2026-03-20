@@ -1,0 +1,2 @@
+[dotenv@17.3.1] injecting env (11) from .env -- tip: 屏・・ run anywhere with `dotenvx run -- yourcommand`
+Error 4.0: {"error":{"code":400,"message":"Imagen 3 is only available on paid plans. Please upgrade your account at https://ai.dev/projects.","status":"INVALID_ARGUMENT"}}

@@ -10,10 +10,12 @@ export interface AnalysisStats {
 
 export interface Post {
     id: string;
+    prompt?: string;
     theme?: string;
     message?: string;
     content: string;
     imageUrl?: string;
+    localPath?: string;
     platforms: Platform[];
     status: PostStatus;
     scheduledAt?: string;

@@ -1,0 +1,14 @@
+[dotenv@17.3.1] injecting env (12) from .env -- tip: 孱・・auth for agents: https://vestauth.com
+Full error: {
+  "name": "ApiError",
+  "status": 403,
+  "body": {
+    "detail": "User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing."
+  },
+  "requestId": ""
+}
+Message: Forbidden
+Status: 403
+Body: {
+  detail: 'User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.'
+}

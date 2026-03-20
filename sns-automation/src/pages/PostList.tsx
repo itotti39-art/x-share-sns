@@ -107,7 +107,7 @@ export function PostList() {
                                                     <img src={post.imageUrl} alt="" className="w-12 h-12 rounded object-cover flex-shrink-0" />
                                                 )}
                                                 <div>
-                                                    <p className="font-medium text-slate-800 line-clamp-1">{post.theme || '(テーマなし)'}</p>
+                                                    <p className="font-medium text-slate-800 line-clamp-1">{post.prompt || post.theme || '(テーマなし)'}</p>
                                                     <p className="text-sm text-slate-500 line-clamp-2 mt-1 whitespace-pre-line">
                                                         {post.content}
                                                     </p>

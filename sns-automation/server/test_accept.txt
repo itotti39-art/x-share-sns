@@ -1,0 +1,2 @@
+[dotenv@17.3.1] injecting env (13) from .env -- tip: 屏・・ run anywhere with `dotenvx run -- yourcommand`
+OK 200 size: 81139
