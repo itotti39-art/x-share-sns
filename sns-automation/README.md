@@ -1,5 +1,12 @@
 # React + TypeScript + Vite
 
+## Vercel でデプロイする場合
+
+1. Vercel の **Project → Settings → General → Root Directory** を `sns-automation` に設定する（リポジトリ直下ではなくこのフォルダがアプリのルートです）。
+2. **Settings → Build & Output** で **Build Command** が `vite build` になっている場合は **削除（空にする）** するか、明示的に `npm run vercel-build` に変更する。  
+   `vite build` をシェルがそのまま実行すると `node_modules/.bin` が PATH に入らず、`vite: command not found`（exit 127）になります。
+3. **Framework Preset** は **Other** にするか、少なくとも Build Command の上書きをやめて、このリポジトリの `vercel.json` を使う。
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
