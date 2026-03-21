@@ -6,6 +6,7 @@
 2. **Settings → Build & Output** で **Build Command** が `vite build` になっている場合は **削除（空にする）** するか、明示的に `npm run vercel-build` に変更する。  
    `vite build` をシェルがそのまま実行すると `node_modules/.bin` が PATH に入らず、`vite: command not found`（exit 127）になります。
 3. **Framework Preset** は **Other** にするか、少なくとも Build Command の上書きをやめて、このリポジトリの `vercel.json` を使う。
+4. **Cron Jobs（予約投稿の自動実行）**: Vercel **Hobby** は **1日1回まで**の Cron しか使えません。`vercel.json` の `crons` は **UTC** の `0 15 * * *`（日本時間 0:00 頃）に設定しています。毎分実行したい場合は **Pro** にするか、外部の定期実行を検討してください。
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
