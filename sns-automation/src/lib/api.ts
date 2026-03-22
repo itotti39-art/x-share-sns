@@ -18,6 +18,7 @@ export async function generateAIPostImage(prompt: string): Promise<{ imageUrl: s
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ prompt })
     });
 
@@ -34,13 +35,17 @@ export async function publishPost(content: string, platforms: Platform[], imageU
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ content, platforms, imageUrl, localPath })
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error Response:', errorData);
-        throw new Error(`Failed: ${errorData.details || errorData.error || response.statusText}`);
+        let errorText = await response.text().catch(() => '');
+        let errorData: any = {};
+        try { errorData = JSON.parse(errorText); } catch(e) {}
+        
+        console.error('API Error Response:', response.status, errorText);
+        throw new Error(`[HTTP ${response.status}] ${errorData.details || errorData.error || errorText || response.statusText}`);
     }
 
     return response.json();
@@ -53,6 +58,7 @@ export async function schedulePost(content: string, platforms: Platform[], sched
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ id: postId, content, platforms, scheduledAt, imageUrl, localPath })
     });
 
