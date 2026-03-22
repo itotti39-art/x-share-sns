@@ -85,38 +85,4 @@ export async function uploadImage(file: File): Promise<{ imageUrl: string; local
     return { imageUrl, localPath: '' };
 }
 
-// パスワードの検証
-export async function verifyPassword(password: string): Promise<{ success: boolean; error?: string }> {
-    try {
-        const response = await fetch('/api/auth/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password }),
-        });
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data.error || '認証に失敗しました');
-        }
-        return await response.json();
-    } catch (e: any) {
-        return { success: false, error: e.message };
-    }
-}
-
-// パスワードの変更
-export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
-    try {
-        const response = await fetch('/api/auth/change', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ currentPassword, newPassword }),
-        });
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data.error || 'パスワードの変更に失敗しました');
-        }
-        return await response.json();
-    } catch (e: any) {
-        return { success: false, error: e.message };
-    }
-}
+// 古いパスワード関連関数は削除されました
