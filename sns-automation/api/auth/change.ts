@@ -1,12 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../_lib/supabase';
+import { parseJsonBody } from '../_lib/parse-json-body';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { currentPassword, newPassword } = req.body;
+    const body = parseJsonBody<{ currentPassword?: unknown; newPassword?: unknown }>(req);
+    const currentPassword =
+        body.currentPassword != null ? String(body.currentPassword).trim() : '';
+    const newPassword = body.newPassword != null ? String(body.newPassword).trim() : '';
 
     try {
         const { data: currentData, error: fetchError } = await supabaseAdmin
@@ -19,7 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(500).json({ success: false, error: 'Failed to verify current password' });
         }
 
-        if (currentPassword !== currentData.password) {
+        const stored = String(currentData.password ?? '').trim();
+        if (currentPassword !== stored) {
             return res.status(401).json({ success: false, error: '現在のパスワードが間違っています' });
         }
 
