@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { publishToPlatforms } from '../_lib/publisher.js'; // VercelのESMビルド用に拡張子 .js を追加
+import { publishToPlatforms } from '../_lib/publisher'; // VercelのESMビルド用に拡張子 .js を追加
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../_lib/supabase';
-import { publishToPlatforms } from '../_lib/publisher.js';
+import { publishToPlatforms } from '../_lib/publisher';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET' && req.method !== 'POST') {
