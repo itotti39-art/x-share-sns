@@ -8,7 +8,11 @@
 3. **Framework Preset** は **Other** にするか、少なくとも Build Command の上書きをやめて、このリポジトリの `vercel.json` を使う。
 4. **Cron Jobs（予約投稿の自動実行）**: Vercel **Hobby** は **1日1回まで**の Cron しか使えません。`vercel.json` の `crons` は **UTC** の `0 15 * * *`（日本時間 0:00 頃）に設定しています。毎分実行したい場合は **Pro** にするか、外部の定期実行を検討してください。
 5. **404 になる場合**: Framework を **Other** にしていると **Output Directory** が空のままだと `dist` が配信されません。`vercel.json` に `"outputDirectory": "dist"` があります。Vercel の **Build & Output → Output Directory** が上書きされていないかも確認してください（空か `dist`）。
-6. **ログイン（0000）**: 本番では **Vercel の Environment Variables** に `VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` を設定してください。Supabase で `supabase/schema.sql` を実行し、`settings` テーブルに `id=1` の行（初期パスワード `0000`）があることを確認してください。未設定だと API が Supabase に繋がらず、フォールバックで `0000` のみ通る想定です（接続エラー時はサーバーログを確認）。
+6. **ログイン（0000）**: Vercel の **Environment Variables**（**Production** にも必ず）に次のいずれかを設定してください。  
+   - 推奨: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`（Settings → API の *service_role*。サーバー専用・クライアントに載せない）  
+   - または: `SUPABASE_URL` + `SUPABASE_ANON_KEY`  
+   - 互換: `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`（フロント用名だがサーバーでも読み込みます）  
+   Supabase で `supabase/schema.sql` を実行し、`settings` に `id=1` の行があることを確認してください。`/api/auth/verify` が **500** のときは、Network のレスポンス JSON の `error` に理由が含まれることがあります。
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
