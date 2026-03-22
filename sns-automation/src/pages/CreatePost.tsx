@@ -182,9 +182,9 @@ export function CreatePost() {
             }
             alert(resultMessage);
             navigate('/posts');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Publishing failed:', error);
-            alert('投稿に失敗しました。サーバーが起動しているか、APIキーが正しく設定されているか確認してください。');
+            alert(`投稿に失敗しました。\n詳細: ${error.message || '不明なエラー'}`);
         } finally {
             setIsPublishing(false);
         }

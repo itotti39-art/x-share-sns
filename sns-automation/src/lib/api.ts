@@ -28,7 +28,6 @@ export async function generateAIPostImage(prompt: string): Promise<{ imageUrl: s
     return response.json();
 }
 
-// 今すぐ投稿
 export async function publishPost(content: string, platforms: Platform[], imageUrl: string | undefined, localPath: string | undefined): Promise<any> {
     const response = await fetch('/api/posts/publish', {
         method: 'POST',
@@ -39,7 +38,9 @@ export async function publishPost(content: string, platforms: Platform[], imageU
     });
 
     if (!response.ok) {
-        throw new Error('Failed to publish post');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error Response:', errorData);
+        throw new Error(`Failed: ${errorData.details || errorData.error || response.statusText}`);
     }
 
     return response.json();
